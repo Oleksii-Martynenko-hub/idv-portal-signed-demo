@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Sign in · IDV Portal</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/js/sign-in.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header-inner">
+      <a class="brand" href="/">IDV Portal</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card" aria-labelledby="sign-in-title">
+      <h1 id="sign-in-title" class="card-title">Sign in</h1>
+      <p class="card-lead">Enter your email to continue to your account.</p>
+
+      <form id="sign-in-form" novalidate>
+        <div class="field">
+          <label for="email" class="label">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            class="input"
+            autocomplete="email"
+            inputmode="email"
+            autocapitalize="off"
+            spellcheck="false"
+            required
+            aria-describedby="email-error">
+          <p id="email-error" class="field-error" aria-live="polite"></p>
+        </div>
+
+        <div class="actions">
+          <button type="submit" id="continue" class="button button-primary">Continue</button>
+          <button type="button" id="random-email" class="button button-text">Use a random email</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">© <span id="year">2026</span> IDV Portal</div>
+  </footer>
+</body>
+</html>

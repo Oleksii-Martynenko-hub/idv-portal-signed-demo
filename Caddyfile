@@ -1,0 +1,20 @@
+{
+	# Clients send no SNI when the host is an IP literal, and behind Docker's
+	# port mapping the connection arrives on the container address, so Caddy
+	# has to be told which certificate to serve in that case.
+	default_sni {$PUBLIC_HOST}
+}
+
+# When PUBLIC_HOST is a bare IP address the certificate comes from Let's
+# Encrypt's short-lived profile (160 hours, renewed by Caddy). The profile
+# works for a hostname as well, so one site block covers both.
+{$PUBLIC_HOST} {
+	encode
+	reverse_proxy app:8080
+
+	tls {
+		issuer acme {
+			profile shortlived
+		}
+	}
+}

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Your account · IDV Portal</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/js/account.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header-inner">
+      <a class="brand" href="/account">IDV Portal</a>
+      <div class="session">
+        <span id="account-email" class="session-email"></span>
+        <button type="button" id="sign-out" class="button button-secondary button-small">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1 class="page-title">Identity verification</h1>
+    <p class="page-lead">Upload a clear photo of your identity document.</p>
+
+    <p id="page-notice" class="notice" aria-live="polite" hidden></p>
+
+    <section class="card" aria-labelledby="upload-title">
+      <h2 id="upload-title" class="card-title">Upload your ID</h2>
+
+      <form id="upload-form" novalidate>
+        <div class="field">
+          <label for="kind" class="label">Document type</label>
+          <select id="kind" name="kind" class="input">
+            <option value="passport">Passport</option>
+            <option value="id_card">National ID card</option>
+            <option value="driving_licence">Driving licence</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="file" class="label">Document image</label>
+          <input
+            id="file"
+            name="file"
+            type="file"
+            class="input input-file"
+            accept="image/jpeg,image/png,image/webp"
+            required
+            aria-describedby="file-help">
+          <p id="file-help" class="help">JPEG, PNG or WebP, up to 10 MB.</p>
+        </div>
+
+        <div class="actions">
+          <button type="submit" id="upload" class="button button-primary">Upload</button>
+        </div>
+
+        <div id="upload-progress-wrap" class="progress" hidden>
+          <progress id="upload-progress" class="progress-bar" max="100" value="0" aria-label="Upload progress"></progress>
+          <span id="upload-percent" class="progress-label" aria-hidden="true">0%</span>
+        </div>
+
+        <p id="upload-status" class="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="documents-title">
+      <h2 id="documents-title" class="card-title" tabindex="-1">Your documents</h2>
+      <p id="documents-status" class="status status-muted" aria-live="polite">Loading…</p>
+      <ul id="document-list" class="document-list"></ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">© <span id="year">2026</span> IDV Portal</div>
+  </footer>
+
+  <template id="document-row">
+    <li class="document">
+      <img class="document-thumb" alt="" width="80" height="80" loading="lazy">
+      <div class="document-body">
+        <div class="document-heading">
+          <span class="document-kind"></span>
+          <span class="badge document-status"></span>
+        </div>
+        <p class="document-name"></p>
+        <p class="document-meta"><span class="document-size"></span> · <time class="document-date"></time></p>
+        <div class="document-actions">
+          <a class="button button-secondary button-small document-open" target="_blank" rel="noopener">Open</a>
+          <button type="button" class="button button-danger button-small document-delete">Delete</button>
+        </div>
+      </div>
+    </li>
+  </template>
+</body>
+</html>

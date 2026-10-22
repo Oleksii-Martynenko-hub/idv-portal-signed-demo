@@ -1,0 +1,15 @@
+node_modules
+dist
+.env*
+.git
+.data
+coverage
+.github
+deploy
+Dockerfile
+.dockerignore
+apprunner.yaml
+docker-compose.yml
+Caddyfile
+*.log
+.DS_Store
