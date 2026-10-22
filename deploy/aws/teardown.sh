@@ -36,11 +36,13 @@ if [ "$answer" != "$APP_NAME" ]; then
 fi
 
 # --- App Runner service ----------------------------------------------------
+# Accounts that never used App Runner may be refused by its API; treat that as
+# "nothing to delete" so the rest of the teardown still runs.
 
 service_arn="$(aws apprunner list-services \
   --region "$AWS_REGION" \
   --query "ServiceSummaryList[?ServiceName=='${APP_NAME}'].ServiceArn | [0]" \
-  --output text)"
+  --output text 2>/dev/null || echo None)"
 
 if [ -n "$service_arn" ] && [ "$service_arn" != "None" ]; then
   aws apprunner delete-service --region "$AWS_REGION" --service-arn "$service_arn" >/dev/null
@@ -127,7 +129,7 @@ asc_count="$(aws apprunner list-auto-scaling-configurations \
   --auto-scaling-configuration-name "$APP_NAME" \
   --no-latest-only \
   --query "length(AutoScalingConfigurationSummaryList[?Status=='ACTIVE'])" \
-  --output text)"
+  --output text 2>/dev/null || echo 0)"
 
 if [ "$asc_count" != "0" ]; then
   aws apprunner delete-auto-scaling-configuration \
