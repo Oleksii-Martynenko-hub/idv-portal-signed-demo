@@ -760,8 +760,7 @@ names the policy `<APP_NAME>-app`, the roles `<APP_NAME>-instance`,
 and security group, the instance's `Name` tag, the App Runner service and
 auto scaling configuration, and the default `KEY_FILE`; `TABLE_NAME` names
 the table; `S3_BUCKET` the bucket. Set all three to new values to run a
-second deployment next to an existing one in the same account and region,
-for example the `signed-uploads` branch beside `main`:
+second deployment next to an existing one in the same account and region:
 
 ```sh
 export AWS_REGION=eu-west-1 AWS_PROFILE=<profile>
@@ -784,32 +783,23 @@ read `APP_NAME` (and `KEY_FILE`) from the same shell; in that path's
 `service.json`, write the new names in place of `<APP_NAME>` and `<table>`.
 
 **EC2.** `deploy.sh` ships the files git tracks in the checkout it is run
-from, as they are on disk, whichever branch that checkout is on. Either
-switch branches before each deployment, or give the second deployment a
-checkout of its own with `git worktree` ([git worktree][gitworktree]) and
-run all of its scripts from there. A branch can be checked out in only one
-worktree at a time, so run this from a checkout that is on another branch,
-such as `main`:
+from, as they are on disk. Run each deployment's scripts from its own
+checkout, with that deployment's three variables exported:
 
 ```sh
-git worktree add ../idv-portal-signed signed-uploads
-cd ../idv-portal-signed
 ./deploy/aws/01-create-storage.sh
 ./deploy/aws/02-create-iam.sh
 ./deploy/aws/ec2/launch.sh
 ```
 
-Later deployments run `./deploy/aws/ec2/deploy.sh` from the same directory.
-Once the deployment is torn down, `git worktree remove ../idv-portal-signed`
-deletes the checkout.
+Later deployments run `./deploy/aws/ec2/deploy.sh` from the same checkout.
 
 **App Runner.** App Runner builds from GitHub, not from a local checkout:
-push the branch and name it in `BRANCH`. The GitHub connection can be shared
-by both services. After `01-create-storage.sh` and `02-create-iam.sh` with
-the variables above:
+push the repository and pass its URL as `REPO_URL`, and `BRANCH` if it is
+not `main`. The GitHub connection can be shared by both services. After
+`01-create-storage.sh` and `02-create-iam.sh` with the variables above:
 
 ```sh
-BRANCH=signed-uploads \
 CONNECTION_ARN=arn:aws:apprunner:eu-west-1:123456789012:connection/github/... \
 REPO_URL=https://github.com/<owner>/<repo> \
 ./deploy/aws/03-create-service.sh
@@ -850,7 +840,6 @@ REPO_URL=https://github.com/<owner>/<repo> \
 - [On-Demand Instances][ec2ondemand] (per-second billing), [unlimited mode for burstable instances][burstable]
 - [EC2 On-Demand pricing][ec2pricing], [VPC pricing][vpcpricing] (public IPv4), [EBS pricing][ebspricing]
 - [Docker Compose plugin manual install][composeinstall]
-- [git worktree][gitworktree]
 
 [availability]: https://docs.aws.amazon.com/apprunner/latest/dg/apprunner-availability-change.html
 [configref]: https://docs.aws.amazon.com/apprunner/latest/dg/config-file-ref.html
@@ -910,4 +899,3 @@ REPO_URL=https://github.com/<owner>/<repo> \
 [vpcpricing]: https://aws.amazon.com/vpc/pricing/
 [ebspricing]: https://aws.amazon.com/ebs/pricing/
 [composeinstall]: https://docs.docker.com/compose/install/linux/
-[gitworktree]: https://git-scm.com/docs/git-worktree
