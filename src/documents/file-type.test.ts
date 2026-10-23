@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { GIF_BYTES, HTML_BYTES, JPEG_BYTES, PNG_BYTES, TEXT_BYTES, WEBP_BYTES } from "../test-support.js";
-import { detectImageType, extensionFor } from "./file-type.js";
+import { detectImageType, extensionFor, isImageType } from "./file-type.js";
 
 describe("detectImageType", () => {
   it("recognises the accepted image formats from their bytes", async () => {
@@ -23,5 +23,16 @@ describe("extensionFor", () => {
     assert.equal(extensionFor("image/jpeg"), "jpg");
     assert.equal(extensionFor("image/png"), "png");
     assert.equal(extensionFor("image/webp"), "webp");
+  });
+});
+
+describe("isImageType", () => {
+  it("accepts the declared types the portal takes", () => {
+    assert.equal(isImageType("image/jpeg"), true);
+    assert.equal(isImageType("image/png"), true);
+    assert.equal(isImageType("image/webp"), true);
+    assert.equal(isImageType("image/gif"), false);
+    assert.equal(isImageType("IMAGE/PNG"), false);
+    assert.equal(isImageType(undefined), false);
   });
 });

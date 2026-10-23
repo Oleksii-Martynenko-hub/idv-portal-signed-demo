@@ -24,6 +24,14 @@ describe("sanitizeFileName", () => {
   it("limits the length", () => {
     assert.equal(sanitizeFileName("x".repeat(500), "png").length, 200);
   });
+
+  it("replaces unpaired surrogates and keeps paired ones", () => {
+    assert.equal(sanitizeFileName("scan\ud800.png", "png"), "scan�.png");
+    assert.equal(sanitizeFileName("\udc00scan.png", "png"), "�scan.png");
+    assert.equal(sanitizeFileName("scan\udc00\ud800.png", "png"), "scan��.png");
+    assert.equal(sanitizeFileName("scan 📷.png", "png"), "scan 📷.png");
+    assert.doesNotThrow(() => contentDisposition(sanitizeFileName("scan\ud800.png", "png")));
+  });
 });
 
 describe("contentDisposition", () => {

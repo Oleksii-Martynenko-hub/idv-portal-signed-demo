@@ -396,7 +396,8 @@ main.container {
   padding-bottom: 0;
 }
 
-.document-thumb {
+.document-thumb,
+.document-placeholder {
   width: 80px;
   height: 80px;
   object-fit: cover;
@@ -432,8 +433,20 @@ main.container {
   color: var(--color-success);
 }
 
+.badge-danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
 .document-name {
   margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.document-reason {
+  margin: 2px 0 0;
+  font-size: 0.875rem;
+  color: var(--color-danger);
   overflow-wrap: anywhere;
 }
 

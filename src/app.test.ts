@@ -10,7 +10,7 @@ import { mockClient } from "aws-sdk-client-mock";
 import request from "supertest";
 import { createApp } from "./app.js";
 import { createLogger } from "./logger.js";
-import { createTestApp, FakeTable, signIn, testConfig } from "./test-support.js";
+import { createTestApp, FakeTable, signIn, testConfig, testSigner } from "./test-support.js";
 
 function createAppWithPages(publicDir: string) {
   const config = testConfig();
@@ -18,7 +18,7 @@ function createAppWithPages(publicDir: string) {
   new FakeTable().attach(mockClient(dynamodb));
   const s3 = new S3Client({ region: config.awsRegion });
   mockClient(s3);
-  return createApp({ config, logger: createLogger("silent"), s3, dynamodb, publicDir });
+  return createApp({ config, logger: createLogger("silent"), s3, dynamodb, signer: testSigner(config), publicDir });
 }
 
 describe("GET /healthz", () => {
@@ -43,6 +43,23 @@ describe("response headers", () => {
     assert.match(csp, /img-src 'self' blob: data:/);
     assert.match(csp, /object-src 'none'/);
     assert.equal(response.headers["x-content-type-options"], "nosniff");
+  });
+
+  it("allows images from and uploads to the bucket's origin only", async () => {
+    const { app, config } = createTestApp();
+    const response = await request(app).get("/healthz").expect(200);
+    const csp = String(response.headers["content-security-policy"]);
+    assert.equal(config.s3PublicOrigin, "https://idv-documents-test.s3.eu-west-1.amazonaws.com");
+    assert.match(csp, /img-src 'self' blob: data: https:\/\/idv-documents-test\.s3\.eu-west-1\.amazonaws\.com;/);
+    assert.match(csp, /connect-src 'self' https:\/\/idv-documents-test\.s3\.eu-west-1\.amazonaws\.com;/);
+  });
+
+  it("follows an endpoint override", async () => {
+    const { app } = createTestApp({ S3_ENDPOINT: "http://localhost:4566" });
+    const response = await request(app).get("/healthz").expect(200);
+    const csp = String(response.headers["content-security-policy"]);
+    assert.match(csp, /img-src 'self' blob: data: http:\/\/localhost:4566;/);
+    assert.match(csp, /connect-src 'self' http:\/\/localhost:4566;/);
   });
 });
 

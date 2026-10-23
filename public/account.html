@@ -79,12 +79,14 @@
   <template id="document-row">
     <li class="document">
       <img class="document-thumb" alt="" width="80" height="80" loading="lazy">
+      <span class="document-placeholder" aria-hidden="true" hidden></span>
       <div class="document-body">
         <div class="document-heading">
           <span class="document-kind"></span>
           <span class="badge document-status"></span>
         </div>
         <p class="document-name"></p>
+        <p class="document-reason" hidden></p>
         <p class="document-meta"><span class="document-size"></span> · <time class="document-date"></time></p>
         <div class="document-actions">
           <a class="button button-secondary button-small document-open" target="_blank" rel="noopener">Open</a>

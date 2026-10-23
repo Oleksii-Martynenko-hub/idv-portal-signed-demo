@@ -1,8 +1,12 @@
 const MAX_FILE_NAME_LENGTH = 200;
+// Half of a surrogate pair without the other half. JSON carries one, but it cannot be
+// encoded as UTF-8, so it would break the Content-Disposition built from the name.
+const LONE_SURROGATE = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g;
 
 // Keeps a display name for the uploaded file. It is never used to build a storage key.
 export function sanitizeFileName(raw: string | undefined, extension: string): string {
-  const base = (raw ?? "").split(/[\\/]/).pop() ?? "";
+  const wellFormed = (raw ?? "").replace(LONE_SURROGATE, "\ufffd");
+  const base = wellFormed.split(/[\\/]/).pop() ?? "";
   const cleaned = Array.from(base.replace(/[\u0000-\u001f\u007f]/g, "").trim())
     .slice(0, MAX_FILE_NAME_LENGTH)
     .join("");

@@ -15,8 +15,13 @@ const envSchema = dynamodbEnvSchema.extend({
   NODE_ENV: z.string().default("development"),
   S3_BUCKET: z.string().min(1),
   S3_ENDPOINT: z.url().optional(),
+  S3_SIGNER_ROLE_ARN: z
+    .string()
+    .regex(/^arn:aws[a-z-]*:iam::\d{12}:role\/[\w+=,.@/-]+$/, "expected an IAM role ARN")
+    .optional(),
   MAX_UPLOAD_MB: z.coerce.number().positive().default(10),
-  MAX_CONCURRENT_UPLOADS: z.coerce.number().int().positive().default(100),
+  UPLOAD_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(1800).default(300),
+  DOWNLOAD_URL_TTL_SECONDS: z.coerce.number().int().min(10).max(1800).default(60),
   SESSION_TTL_DAYS: z.coerce.number().positive().default(7),
   TRUST_PROXY: z.string().optional(),
   LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
@@ -34,8 +39,12 @@ export interface Config extends DynamoDBConfig {
   isProduction: boolean;
   s3Bucket: string;
   s3Endpoint: string | undefined;
+  // Origin of every presigned URL; the browser talks to it directly.
+  s3PublicOrigin: string;
+  s3SignerRoleArn: string | undefined;
   maxUploadBytes: number;
-  maxConcurrentUploads: number;
+  uploadUrlTtlSeconds: number;
+  downloadUrlTtlSeconds: number;
   sessionTtlSeconds: number;
   trustProxy: boolean | number | string;
   logLevel: LogLevel;
@@ -55,9 +64,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     s3Bucket: vars.S3_BUCKET,
     dynamodbTable: vars.DYNAMODB_TABLE,
     s3Endpoint: vars.S3_ENDPOINT,
+    s3PublicOrigin: s3PublicOrigin(vars.S3_BUCKET, vars.AWS_REGION, vars.S3_ENDPOINT),
+    s3SignerRoleArn: vars.S3_SIGNER_ROLE_ARN,
     dynamodbEndpoint: vars.DYNAMODB_ENDPOINT,
     maxUploadBytes: Math.floor(vars.MAX_UPLOAD_MB * BYTES_PER_MIB),
-    maxConcurrentUploads: vars.MAX_CONCURRENT_UPLOADS,
+    uploadUrlTtlSeconds: vars.UPLOAD_URL_TTL_SECONDS,
+    downloadUrlTtlSeconds: vars.DOWNLOAD_URL_TTL_SECONDS,
     sessionTtlSeconds: Math.floor(vars.SESSION_TTL_DAYS * SECONDS_PER_DAY),
     trustProxy: parseTrustProxy(vars.TRUST_PROXY, isProduction),
     logLevel: vars.LOG_LEVEL,
@@ -80,6 +92,18 @@ function parseEnv<Schema extends z.ZodType>(schema: Schema, env: NodeJS.ProcessE
     throw new Error(`Invalid configuration:\n${z.prettifyError(result.error)}`);
   }
   return result.data;
+}
+
+// With an endpoint override the clients use path-style URLs on that host.
+// Against AWS they use the virtual-hosted name, whose wildcard certificate
+// does not cover bucket names with dots (the SDK would quietly switch to
+// path-style and the CSP would not match).
+function s3PublicOrigin(bucket: string, region: string, endpoint: string | undefined): string {
+  if (endpoint) return new URL(endpoint).origin;
+  if (bucket.includes(".")) {
+    throw new Error("Invalid configuration: S3_BUCKET must not contain dots unless S3_ENDPOINT is set");
+  }
+  return `https://${bucket}.s3.${region}.amazonaws.com`;
 }
 
 // Express accepts a hop count, "false" or a subnet list for "trust proxy".

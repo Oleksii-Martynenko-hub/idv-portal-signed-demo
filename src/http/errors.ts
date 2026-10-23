@@ -24,6 +24,20 @@ export function notFound(): HttpError {
   return new HttpError(404, "not_found", "Not found.");
 }
 
+export function storageUnavailable(cause?: unknown): HttpError {
+  const message = "File storage is temporarily unavailable. Try again later.";
+  return new HttpError(502, "storage_unavailable", message, { cause });
+}
+
+// S3 and the signer are dependencies of this service; their failures are a 502, not a 500.
+export async function viaStorage<T>(operation: Promise<T>): Promise<T> {
+  try {
+    return await operation;
+  } catch (error) {
+    throw storageUnavailable(error);
+  }
+}
+
 export const notFoundHandler: RequestHandler = (_req, res) => {
   res.status(404).json(errorBody("not_found", "Not found."));
 };
@@ -33,8 +47,6 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next
     next(error);
     return;
   }
-  // A handler may have prepared a file response before it failed.
-  res.removeHeader("Content-Disposition");
   res.type("json");
   if (error instanceof HttpError) {
     if (error.status >= 500) {

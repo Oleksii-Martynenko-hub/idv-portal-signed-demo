@@ -11,10 +11,14 @@ import { requireSession, resolveSession } from "./auth/session.js";
 import type { Config } from "./config.js";
 import { DocumentRepository } from "./documents/repository.js";
 import { documentsRouter } from "./documents/routes.js";
+import { documentPresenter } from "./documents/view.js";
 import { csrfProtection } from "./http/csrf.js";
 import { errorHandler, notFoundHandler } from "./http/errors.js";
 import { createHttpLogger } from "./logger.js";
+import type { UrlSigner } from "./storage/presigner.js";
 import { ObjectStore } from "./storage/s3.js";
+import { PendingUploadRepository } from "./uploads/repository.js";
+import { uploadsRouter } from "./uploads/routes.js";
 import { UserRepository } from "./users/repository.js";
 
 export interface AppDependencies {
@@ -22,17 +26,27 @@ export interface AppDependencies {
   logger: Logger;
   s3: S3Client;
   dynamodb: DynamoDBDocumentClient;
+  signer: UrlSigner;
   publicDir?: string;
 }
 
 const DEFAULT_PUBLIC_DIR = fileURLToPath(new URL("../public/", import.meta.url));
 const STATIC_MAX_AGE_MS = 5 * 60 * 1000;
 
-export function createApp({ config, logger, s3, dynamodb, publicDir = DEFAULT_PUBLIC_DIR }: AppDependencies): Express {
+export function createApp({
+  config,
+  logger,
+  s3,
+  dynamodb,
+  signer,
+  publicDir = DEFAULT_PUBLIC_DIR,
+}: AppDependencies): Express {
   const users = new UserRepository(dynamodb, config.dynamodbTable);
   const sessions = new SessionRepository(dynamodb, config.dynamodbTable);
   const documents = new DocumentRepository(dynamodb, config.dynamodbTable);
+  const uploads = new PendingUploadRepository(dynamodb, config.dynamodbTable);
   const store = new ObjectStore(s3, config.s3Bucket);
+  const presentDocument = documentPresenter(signer, config.downloadUrlTtlSeconds);
   const withSession = resolveSession(sessions);
 
   const app = express();
@@ -48,8 +62,9 @@ export function createApp({ config, logger, s3, dynamodb, publicDir = DEFAULT_PU
           "default-src": ["'self'"],
           "script-src": ["'self'"],
           "style-src": ["'self'"],
-          "img-src": ["'self'", "blob:", "data:"],
-          "connect-src": ["'self'"],
+          // Thumbnails load from presigned URLs and the file goes straight to S3.
+          "img-src": ["'self'", "blob:", "data:", config.s3PublicOrigin],
+          "connect-src": ["'self'", config.s3PublicOrigin],
           "font-src": ["'self'"],
           "object-src": ["'none'"],
           "base-uri": ["'self'"],
@@ -107,7 +122,8 @@ export function createApp({ config, logger, s3, dynamodb, publicDir = DEFAULT_PU
   const api = Router();
   api.use(withSession, requireSession);
   api.use("/me", currentUserRouter({ users }));
-  api.use("/documents", documentsRouter({ documents, store, config }));
+  api.use("/documents", documentsRouter({ documents, store, presentDocument }));
+  api.use("/uploads", uploadsRouter({ uploads, documents, store, signer, presentDocument, config }));
   app.use("/api", api);
 
   app.use(notFoundHandler);
