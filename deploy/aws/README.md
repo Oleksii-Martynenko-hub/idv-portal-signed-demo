@@ -580,9 +580,10 @@ creates, or reuses by name, each of the following, then runs `deploy.sh`:
 
 `user-data.sh` runs once at first boot through cloud-init: it installs Docker
 and `rsync` from the distribution, enables Docker, puts `ec2-user` in the
-`docker` group, installs the Docker Compose plugin from its GitHub release
-(AL2023 does not package it; the download is checked against the published
-SHA-256), adds a 1 GiB swap file so that `npm ci` and `tsc` survive the
+`docker` group, installs the Docker Compose and buildx plugins from their
+GitHub releases (AL2023 does not package Compose, and the buildx in its
+`docker` package is older than Compose requires; each download is checked
+against the published SHA-256), adds a 1 GiB swap file so that `npm ci` and `tsc` survive the
 instance's 1 GiB of memory during image builds, and creates `/opt/idv-portal`
 owned by `ec2-user`.
 
