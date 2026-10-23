@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Deletes everything the 01-03 scripts created: the App Runner service, the
-# bucket and its objects, the table, the IAM role and policy, and the auto
+# bucket and its objects, the table, the IAM roles and policy, and the auto
 # scaling configuration. The GitHub connection is left in place because it
 # can be shared by other services.
 #
@@ -18,6 +18,7 @@ export AWS_PAGER=""
 account_id="$(aws sts get-caller-identity --query Account --output text)"
 policy_name="${APP_NAME}-app"
 role_name="${APP_NAME}-instance"
+signer_role_name="${APP_NAME}-signer"
 policy_arn="arn:aws:iam::${account_id}:policy/${policy_name}"
 asc_arn="arn:aws:apprunner:${AWS_REGION}:${account_id}:autoscalingconfiguration/${APP_NAME}"
 
@@ -26,7 +27,7 @@ This permanently deletes, in $AWS_REGION (account $account_id):
   - App Runner service        $APP_NAME
   - S3 bucket and all objects $S3_BUCKET
   - DynamoDB table            $TABLE_NAME
-  - IAM role and policy       $role_name, $policy_name
+  - IAM roles and policy      $role_name, $signer_role_name, $policy_name
   - auto scaling configuration $APP_NAME
 EOT
 read -r -p "Type the application name ($APP_NAME) to continue: " answer
@@ -97,6 +98,20 @@ if aws iam get-role --role-name "$role_name" >/dev/null 2>&1; then
   echo "Deleted role $role_name"
 else
   echo "No role named $role_name"
+fi
+
+if aws iam get-role --role-name "$signer_role_name" >/dev/null 2>&1; then
+  # delete-role refuses a role that still has inline policies.
+  for inline in $(aws iam list-role-policies \
+      --role-name "$signer_role_name" \
+      --query 'PolicyNames[]' \
+      --output text); do
+    aws iam delete-role-policy --role-name "$signer_role_name" --policy-name "$inline"
+  done
+  aws iam delete-role --role-name "$signer_role_name"
+  echo "Deleted role $signer_role_name"
+else
+  echo "No role named $signer_role_name"
 fi
 
 if aws iam get-policy --policy-arn "$policy_arn" >/dev/null 2>&1; then

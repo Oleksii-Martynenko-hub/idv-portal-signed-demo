@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Removes what launch.sh created: the instance, the security group, the key
 # pair with its local file, the instance profile and the role. The bucket,
-# table and application policy are shared with the App Runner path and are
-# removed by deploy/aws/teardown.sh.
+# table, application policy and signer role are shared with the App Runner
+# path and are removed by deploy/aws/teardown.sh.
 #
 # Required: AWS_REGION. Optional: APP_NAME (default idv-portal), KEY_FILE
 # (default ~/.ssh/<APP_NAME>-ec2.pem).
@@ -27,7 +27,7 @@ This permanently deletes, in $AWS_REGION (account $account_id):
   - security group             $sg_name
   - key pair and private key   $key_name, $KEY_FILE
   - instance profile and role  $profile_name, $role_name
-The bucket, table and policy stay; deploy/aws/teardown.sh removes them.
+The bucket, table, policy and signer role stay; deploy/aws/teardown.sh removes them.
 EOT
 read -r -p "Type the application name ($APP_NAME) to continue: " answer
 if [ "$answer" != "$APP_NAME" ]; then
@@ -132,4 +132,4 @@ else
 fi
 
 echo
-echo "Teardown complete. The bucket, table and policy are removed by deploy/aws/teardown.sh."
+echo "Teardown complete. The bucket, table, policy and signer role are removed by deploy/aws/teardown.sh."

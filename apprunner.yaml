@@ -1,6 +1,13 @@
-# Build and run settings for App Runner's configuration-file mode.
-# Deployment-specific variables (AWS_REGION, S3_BUCKET, DYNAMODB_TABLE) are
-# set on the service, not here. See deploy/aws/README.md.
+# Build and run settings for a service created with "Use a configuration
+# file". The scripted deploy (deploy/aws/03-create-service.sh) configures its
+# service through the API and does not read this file. A service that does
+# read it reads only this file, and App Runner then ignores the environment
+# variables set on the service, so AWS_REGION, S3_BUCKET, DYNAMODB_TABLE and
+# S3_SIGNER_ROLE_ARN have to be added under run.env, or under run.secrets
+# from Parameter Store (the instance role then needs ssm:GetParameters on
+# those parameters, which <APP_NAME>-app does not grant). Set the bucket's
+# CORS rule with deploy/aws/set-bucket-cors.sh once the service URL is
+# known. See deploy/aws/README.md.
 version: 1.0
 runtime: nodejs22
 build:

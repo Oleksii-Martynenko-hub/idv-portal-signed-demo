@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Deploys the files tracked by git to the EC2 instance: rsync to
-# /opt/idv-portal, write .env, docker compose up --build, then wait until
-# /healthz answers over HTTPS with a trusted certificate.
+# /opt/idv-portal, write .env, allow https://<PUBLIC_HOST> in the bucket's
+# CORS rule, docker compose up --build, then wait until /healthz answers over
+# HTTPS with a trusted certificate.
 #
 # Required: AWS_REGION, S3_BUCKET. Optional: APP_NAME (default idv-portal),
 # TABLE_NAME (default idv-portal), KEY_FILE (default
@@ -22,6 +23,13 @@ export AWS_PAGER=""
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_dir="$(cd "$script_dir/../../.." && pwd)"
+account_id="$(aws sts get-caller-identity --query Account --output text)"
+signer_role_arn="arn:aws:iam::${account_id}:role/${APP_NAME}-signer"
+
+if ! aws iam get-role --role-name "${APP_NAME}-signer" >/dev/null 2>&1; then
+  echo "Role $signer_role_arn not found; run 02-create-iam.sh first." >&2
+  exit 1
+fi
 
 if [ -z "$INSTANCE_IP" ]; then
   INSTANCE_IP="$(aws ec2 describe-instances \
@@ -73,9 +81,16 @@ PORT=8080
 AWS_REGION=${AWS_REGION}
 S3_BUCKET=${S3_BUCKET}
 DYNAMODB_TABLE=${TABLE_NAME}
+S3_SIGNER_ROLE_ARN=${signer_role_arn}
 TRUST_PROXY=1
 PUBLIC_HOST=${PUBLIC_HOST}
 EOT
+
+# --- Bucket CORS -----------------------------------------------------------
+# Set on every deployment: the origin follows PUBLIC_HOST, and the public IP
+# changes whenever the instance is stopped and started.
+
+"$script_dir/../set-bucket-cors.sh" "https://${PUBLIC_HOST}"
 
 # --- Containers ------------------------------------------------------------
 

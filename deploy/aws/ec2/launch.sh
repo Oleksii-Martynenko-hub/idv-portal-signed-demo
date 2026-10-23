@@ -36,6 +36,10 @@ if ! aws iam get-policy --policy-arn "$policy_arn" >/dev/null 2>&1; then
   echo "Policy $policy_arn not found; run 02-create-iam.sh first." >&2
   exit 1
 fi
+if ! aws iam get-role --role-name "${APP_NAME}-signer" >/dev/null 2>&1; then
+  echo "Role ${APP_NAME}-signer not found; run 02-create-iam.sh first." >&2
+  exit 1
+fi
 
 # --- Instance role and profile ---------------------------------------------
 

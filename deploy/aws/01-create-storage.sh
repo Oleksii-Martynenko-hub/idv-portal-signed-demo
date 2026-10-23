@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Creates the S3 bucket and the DynamoDB table used by the service.
+# Creates the S3 bucket and the DynamoDB table used by the service. The
+# bucket's CORS rule depends on the deployed origin and is set by
+# set-bucket-cors.sh, which the deploy scripts call.
 #
 # Required: AWS_REGION, S3_BUCKET. Optional: TABLE_NAME (default idv-portal).
 # Credentials come from the usual AWS CLI sources (AWS_PROFILE, env, SSO).
@@ -39,8 +41,10 @@ aws s3api put-public-access-block \
     "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
 echo "Blocked all public access on $S3_BUCKET"
 
-# New buckets are encrypted with SSE-S3 by default; only the TLS requirement
-# needs an explicit policy.
+# New buckets are encrypted with SSE-S3 by default; the policy adds the TLS
+# requirement and makes writes under staging/ create-only (If-None-Match: *).
+# files/ stays unconditional: S3 refuses CopyObject into a prefix that
+# enforces conditional writes, and promotion is a copy.
 aws s3api put-bucket-policy \
   --bucket "$S3_BUCKET" \
   --region "$AWS_REGION" \
@@ -60,12 +64,49 @@ aws s3api put-bucket-policy \
       "Condition": {
         "Bool": { "aws:SecureTransport": "false" }
       }
+    },
+    {
+      "Sid": "RequireCreateOnlyStagingWrites",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::${S3_BUCKET}/staging/*",
+      "Condition": {
+        "Null": { "s3:if-none-match": "true" }
+      }
     }
   ]
 }
 JSON
 )"
-echo "Applied TLS-only bucket policy to $S3_BUCKET"
+echo "Applied bucket policy to $S3_BUCKET (TLS only, create-only writes under staging/)"
+
+# Uploads that are never completed, or whose staged copy could not be
+# removed, are left under staging/. The configuration replaces any existing
+# one as a whole.
+aws s3api put-bucket-lifecycle-configuration \
+  --bucket "$S3_BUCKET" \
+  --region "$AWS_REGION" \
+  --lifecycle-configuration "$(cat <<JSON
+{
+  "Rules": [
+    {
+      "ID": "expire-staging",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "staging/" },
+      "Expiration": { "Days": 1 }
+    },
+    {
+      "ID": "abort-incomplete-multipart-uploads",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "" },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    }
+  ]
+}
+JSON
+)" >/dev/null
+echo "Applied lifecycle rules to $S3_BUCKET (staging/ expires after 1 day, incomplete multipart uploads aborted after 1 day)"
 
 # --- DynamoDB table --------------------------------------------------------
 
@@ -107,3 +148,6 @@ echo
 echo "Storage ready:"
 echo "  S3_BUCKET=$S3_BUCKET"
 echo "  DYNAMODB_TABLE=$TABLE_NAME"
+echo "Browsers need the bucket's CORS rule for the application's origin;"
+echo "ec2/deploy.sh and 03-create-service.sh set it. For local development:"
+echo "  ./deploy/aws/set-bucket-cors.sh http://localhost:8080"

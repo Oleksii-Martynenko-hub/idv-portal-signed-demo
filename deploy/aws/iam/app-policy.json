@@ -2,6 +2,15 @@
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "StagedUploads",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::__S3_BUCKET__/staging/*"
+    },
+    {
       "Sid": "DocumentObjects",
       "Effect": "Allow",
       "Action": [
@@ -9,7 +18,13 @@
         "s3:GetObject",
         "s3:DeleteObject"
       ],
-      "Resource": "arn:aws:s3:::__S3_BUCKET__/users/*"
+      "Resource": "arn:aws:s3:::__S3_BUCKET__/files/*"
+    },
+    {
+      "Sid": "AssumeSignerRole",
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "__SIGNER_ROLE_ARN__"
     },
     {
       "Sid": "ApplicationTable",

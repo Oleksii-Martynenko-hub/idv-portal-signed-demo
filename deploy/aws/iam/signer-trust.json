@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::__ACCOUNT_ID__:root"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": [
+            "__INSTANCE_ROLE_ARN__",
+            "__EC2_ROLE_ARN__"
+          ]
+        }
+      }
+    }
+  ]
+}
