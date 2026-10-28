@@ -91,7 +91,7 @@ instead, which can do nothing beyond what a browser is sent to do.
 
 | Role | Created by | Used for | S3 | Other |
 |---|---|---|---|---|
-| `<APP_NAME>-instance` (App Runner) or `<APP_NAME>-ec2` (EC2), with the `<APP_NAME>-app` policy | `02-create-iam.sh`, `ec2/launch.sh` | The service's own calls: checking a staged upload, copying it to `files/`, deleting objects | `GetObject` and `DeleteObject` on `staging/*`; `PutObject`, `GetObject` and `DeleteObject` on `files/*` | `GetItem`, `PutItem`, `DeleteItem`, `Query`, `TransactWriteItems` and `UpdateItem` on the table; `sts:AssumeRole` on the signer role |
+| `<APP_NAME>-instance` (App Runner) or `<APP_NAME>-ec2` (EC2), with the `<APP_NAME>-app` policy | `02-create-iam.sh`, `ec2/launch.sh` | The service's own calls: checking a staged upload, copying it to `files/`, deleting objects | `GetObject` and `DeleteObject` on `staging/*`; `PutObject` and `DeleteObject` on `files/*` | `GetItem`, `PutItem`, `DeleteItem`, `Query`, `TransactWriteItems` and `UpdateItem` on the table; `sts:AssumeRole` on the signer role |
 | `<APP_NAME>-signer` | `02-create-iam.sh` | Signing presigned URLs | `PutObject` on `staging/users/*`; `GetObject` on `files/users/*` | – |
 
 Neither role has `ListBucket`, so S3 answers `403` rather than `404` for a
